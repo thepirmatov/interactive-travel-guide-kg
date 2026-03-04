@@ -5,11 +5,16 @@ import { Location, locations, categoryConfig } from '@/data/locations';
 import LocationModal from './LocationModal';
 
 // We need to dynamically import react-leaflet to avoid SSR issues
-let MapContainer: React.ComponentType<Record<string, unknown>>;
-let TileLayer: React.ComponentType<Record<string, unknown>>;
-let Marker: React.ComponentType<Record<string, unknown>>;
-let Popup: React.ComponentType<Record<string, unknown>>;
-let L: typeof import('leaflet');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let MapContainer: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let TileLayer: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Marker: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Popup: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let L: any;
 
 export default function MapView() {
     const [mounted, setMounted] = useState(false);
@@ -122,11 +127,11 @@ export default function MapView() {
                                 onClick={() => setSelectedLocation(location)}
                             >
                                 <div className={`h-24 rounded-t-lg bg-gradient-to-br ${location.category === 'lake' ? 'from-sky-400 to-sky-600' :
-                                        location.category === 'mountain' ? 'from-gray-500 to-gray-700' :
-                                            location.category === 'historical' ? 'from-amber-400 to-amber-600' :
-                                                location.category === 'city' ? 'from-emerald-500 to-emerald-700' :
-                                                    location.category === 'nature' ? 'from-orange-400 to-orange-600' :
-                                                        'from-green-500 to-green-700'
+                                    location.category === 'mountain' ? 'from-gray-500 to-gray-700' :
+                                        location.category === 'historical' ? 'from-amber-400 to-amber-600' :
+                                            location.category === 'city' ? 'from-emerald-500 to-emerald-700' :
+                                                location.category === 'nature' ? 'from-orange-400 to-orange-600' :
+                                                    'from-green-500 to-green-700'
                                     } flex items-center justify-center`}>
                                     <span className="text-4xl">{categoryConfig[location.category].icon}</span>
                                 </div>

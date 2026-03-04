@@ -30,24 +30,16 @@ export default function InquiryForm() {
 
     const handleSubmit = async () => {
         setSubmitting(true);
-        try {
-            const payload = {
-                ...form,
-                locations: selectedLocations.map((l) => ({ id: l.id, name: l.name, category: l.category })),
-                submittedAt: new Date().toISOString(),
-            };
-            const res = await fetch('/api/inquiry', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            if (res.ok) {
-                setSubmitted(true);
-            }
-        } catch {
-            // Fallback — still show success since it's a mock
-            setSubmitted(true);
-        }
+        const payload = {
+            ...form,
+            locations: selectedLocations.map((l) => ({ id: l.id, name: l.name, category: l.category })),
+            submittedAt: new Date().toISOString(),
+        };
+        // Log inquiry to console (swap with EmailJS or backend in production)
+        console.log('📬 Travel Inquiry:', JSON.stringify(payload, null, 2));
+        // Simulate network delay
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        setSubmitted(true);
         setSubmitting(false);
     };
 
