@@ -1,154 +1,189 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Location, locations, categoryConfig } from '@/data/locations';
-import LocationModal from './LocationModal';
-
-// We need to dynamically import react-leaflet to avoid SSR issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let MapContainer: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let TileLayer: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let Marker: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let Popup: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let L: any;
+import React, { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
+import { categoryConfig } from '@/data/locations';
+import type { LocationCategory } from '@/data/locations';
+import { useTourStore } from '@/store/useTourStore';
+import {
+  MAX_PITCH,
+  TERRAIN_EXAGGERATION,
+  USE_PMTILES,
+  FLYTO_CENTER,
+  FLYTO_ZOOM,
+  FLYTO_PITCH,
+  FLYTO_BEARING,
+  FLYTO_START_ZOOM,
+  FLYTO_START_PITCH,
+  FLYTO_DELAY_MS,
+  FLYTO_DURATION_MS,
+} from '@/lib/map/config';
+import { getBaseStyle } from '@/lib/map/style';
+import { getWorldMinusKyrgyzstanGeoJSON } from '@/lib/map/kyrgyzstanMask';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import './MapView.css';
 
 export default function MapView() {
-    const [mounted, setMounted] = useState(false);
-    const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-    const [mapReady, setMapReady] = useState(false);
+  const pathname = usePathname();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { destinations, openStory, setMap } = useTourStore();
+  const [satelliteOn, setSatelliteOn] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef<{ map: import('maplibre-gl').Map; markers: import('maplibre-gl').Marker[] } | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-    useEffect(() => {
-        // Dynamically import Leaflet and react-leaflet on client side
-        Promise.all([
-            import('leaflet'),
-            import('react-leaflet'),
-        ]).then(([leaflet, rl]) => {
-            L = leaflet.default || leaflet;
-            MapContainer = rl.MapContainer;
-            TileLayer = rl.TileLayer;
-            Marker = rl.Marker;
-            Popup = rl.Popup;
+  useEffect(() => {
+    if (!containerRef.current || typeof window === 'undefined') return;
 
-            // Fix default icon issue
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            delete (L.Icon.Default.prototype as any)._getIconUrl;
+    Promise.all([import('maplibre-gl'), import('pmtiles')]).then(([maplibregl, { Protocol }]) => {
+      const protocol = new Protocol();
+      maplibregl.default.addProtocol('pmtiles', protocol.tile);
+      cleanupRef.current = () => maplibregl.default.removeProtocol('pmtiles');
 
-            setMounted(true);
+      const style = getBaseStyle(USE_PMTILES);
+      const map = new maplibregl.default.Map({
+        container: containerRef.current!,
+        style,
+        center: FLYTO_CENTER,
+        zoom: FLYTO_START_ZOOM,
+        pitch: FLYTO_START_PITCH,
+        bearing: FLYTO_BEARING,
+        maxPitch: MAX_PITCH,
+        hash: true,
+        maxZoom: 18,
+      });
+
+      map.on('load', () => {
+        map.setTerrain({ source: 'terrain', exaggeration: TERRAIN_EXAGGERATION });
+
+        // Spotlight: inverted polygon — dim everything outside Kyrgyzstan (0.7 opacity)
+        map.addSource('spotlight-mask', {
+          type: 'geojson',
+          data: getWorldMinusKyrgyzstanGeoJSON(),
         });
-    }, []);
-
-    if (!mounted) {
-        return (
-            <div className="w-full h-[600px] rounded-2xl bg-forest-50 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 border-3 border-forest-300 border-t-forest-600 rounded-full animate-spin" />
-                    <p className="text-forest-600 font-medium">Loading map...</p>
-                </div>
-            </div>
-        );
-    }
-
-    const createCategoryIcon = (category: string) => {
-        const config = categoryConfig[category as keyof typeof categoryConfig];
-        const color = config?.color || '#2E7D32';
-        const emoji = config?.icon || '📍';
-
-        return L.divIcon({
-            className: 'custom-marker',
-            html: `
-        <div style="
-          position: relative;
-          width: 44px;
-          height: 52px;
-          cursor: pointer;
-        ">
-          <svg width="44" height="52" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 51C22 51 42 33.5 42 20C42 9.507 33.046 1 22 1C10.954 1 2 9.507 2 20C2 33.5 22 51 22 51Z" fill="${color}" stroke="white" stroke-width="2"/>
-          </svg>
-          <div style="
-            position: absolute;
-            top: 6px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 18px;
-            line-height: 1;
-            text-align: center;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
-          ">${emoji}</div>
-        </div>
-      `,
-            iconSize: [44, 52],
-            iconAnchor: [22, 52],
-            popupAnchor: [0, -52],
+        map.addLayer({
+          id: 'spotlight-mask',
+          type: 'fill',
+          source: 'spotlight-mask',
+          paint: {
+            'fill-color': '#000000',
+            'fill-opacity': 0.7,
+          },
         });
+
+        // Sky + fog: deep blue zenith, whitish horizon (MapLibre uses setSky, not setFog)
+        map.setSky({
+          'sky-color': '#245cdf',
+          'horizon-color': '#b8d4e8',
+          'sky-horizon-blend': 0.2,
+          'fog-color': '#ffffff',
+          'fog-ground-blend': 0.1,
+          'horizon-fog-blend': 0.1,
+        });
+
+        // Light: viewport-relative for consistent shadows on terrain
+        map.setLight({
+          anchor: 'viewport',
+          color: 'white',
+          intensity: 0.4,
+        });
+
+        map.addControl(new maplibregl.default.NavigationControl({ visualizePitch: true }), 'bottom-right');
+        mapRef.current = { map, markers: [] };
+        setMap(map);
+        setMapReady(true);
+
+        // Cinematic intro only when on main page (not admin)
+        const isAdmin = pathname === '/admin';
+        if (!isAdmin) {
+          setTimeout(() => {
+            map.flyTo({
+              center: FLYTO_CENTER,
+              zoom: FLYTO_ZOOM,
+              pitch: FLYTO_PITCH,
+              bearing: FLYTO_BEARING,
+              duration: FLYTO_DURATION_MS,
+              curve: 1,
+              essential: true,
+            });
+          }, FLYTO_DELAY_MS);
+        }
+      });
+    });
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.markers.forEach((m) => m.remove());
+        mapRef.current.map.remove();
+        mapRef.current = null;
+      }
+      setMap(null);
+      cleanupRef.current?.();
+      cleanupRef.current = null;
     };
+  }, []);
 
-    return (
-        <>
-            <MapContainer
-                center={[41.5, 75.5]}
-                zoom={7}
-                style={{ height: '600px', width: '100%', borderRadius: '16px' }}
-                scrollWheelZoom={true}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                {...({ whenReady: () => setMapReady(true) } as any)}
-            >
-                <TileLayer
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    {...({
-                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-                        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                    } as any)}
-                />
-                {mapReady && locations.map((location) => (
-                    <Marker
-                        key={location.id}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        {...({
-                            position: location.coordinates,
-                            icon: createCategoryIcon(location.category),
-                            eventHandlers: {
-                                click: () => setSelectedLocation(location),
-                            },
-                        } as any)}
-                    >
-                        <Popup>
-                            <div
-                                className="cursor-pointer"
-                                onClick={() => setSelectedLocation(location)}
-                            >
-                                <div className={`h-24 rounded-t-lg bg-gradient-to-br ${location.category === 'lake' ? 'from-sky-400 to-sky-600' :
-                                    location.category === 'mountain' ? 'from-gray-500 to-gray-700' :
-                                        location.category === 'historical' ? 'from-amber-400 to-amber-600' :
-                                            location.category === 'city' ? 'from-emerald-500 to-emerald-700' :
-                                                location.category === 'nature' ? 'from-orange-400 to-orange-600' :
-                                                    'from-green-500 to-green-700'
-                                    } flex items-center justify-center`}>
-                                    <span className="text-4xl">{categoryConfig[location.category].icon}</span>
-                                </div>
-                                <div className="p-3">
-                                    <h3 className="font-bold text-forest-900 text-sm mb-1">{location.name}</h3>
-                                    <p className="text-xs text-muted leading-relaxed line-clamp-2">{location.shortDescription}</p>
-                                    <div className="mt-2 text-xs font-semibold text-forest-600 flex items-center gap-1">
-                                        Click for details →
-                                    </div>
-                                </div>
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
-            </MapContainer>
+  // Add markers when map is ready (use destinations from store)
+  useEffect(() => {
+    if (!mapRef.current || !mapReady) return;
 
-            <LocationModal location={selectedLocation} onClose={() => setSelectedLocation(null)} />
-        </>
-    );
+    Promise.all([import('maplibre-gl'), import('pmtiles')]).then(([maplibregl]) => {
+      const ref = mapRef.current!;
+      const { map } = ref;
+      // Clear existing markers so we don't duplicate when destinations change (e.g. after admin save)
+      ref.markers.forEach((m) => m.remove());
+      ref.markers = [];
+      destinations.forEach((dest) => {
+        const config = categoryConfig[dest.icon_type as LocationCategory];
+        const color = config?.color ?? '#2E7D32';
+        const emoji = config?.icon ?? '📍';
+        const el = document.createElement('div');
+        el.className = 'map-view-3d-marker map-view-3d-marker-float';
+        el.innerHTML = `
+          <span class="map-view-3d-marker-pin" style="background: linear-gradient(180deg, ${color} 0%, ${color}99 100%);"></span>
+          <span class="map-view-3d-marker-label">${emoji} ${dest.name}</span>
+        `;
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => openStory(dest));
+
+        const marker = new maplibregl.default.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat(dest.main_pin_coordinates)
+          .addTo(map);
+        ref.markers.push(marker);
+      });
+    });
+  }, [mapReady, destinations, openStory]);
+
+  const toggleSatellite = () => {
+    const ref = mapRef.current;
+    if (!ref?.map?.getLayer('satellite')) return;
+    const next = !satelliteOn;
+    ref.map.setLayoutProperty('satellite', 'visibility', next ? 'visible' : 'none');
+    ref.map.setLayoutProperty('osm', 'visibility', next ? 'none' : 'visible');
+    setSatelliteOn(next);
+  };
+
+  return (
+    <>
+      <div className="map-view-3d-wrap">
+        <div ref={containerRef} className="map-view-3d-container" />
+        <div className="map-view-3d-controls">
+          <button
+            type="button"
+            className="map-view-3d-btn"
+            onClick={toggleSatellite}
+            title="Toggle satellite layer"
+          >
+            {satelliteOn ? '🗺️ Map' : '🛰️ Satellite'}
+          </button>
+        </div>
+        {!mapReady && (
+          <div className="map-view-3d-loading">
+            <span className="map-view-3d-spinner" />
+            <p className="text-forest-600 font-medium">Loading map…</p>
+          </div>
+        )}
+      </div>
+    </>
+  );
 }

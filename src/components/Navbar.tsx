@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import Link from 'next/link';
 import { MapPin, Compass } from 'lucide-react';
 import { useJourney } from '@/context/JourneyContext';
 
@@ -44,6 +44,12 @@ export default function Navbar() {
                         </button>
 
                         {/* CTA */}
+                        <Link
+                            href="/admin"
+                            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-forest-500 hover:text-forest-700"
+                        >
+                            Creator
+                        </Link>
                         <button
                             onClick={() => setInquiry(true)}
                             className="hidden sm:flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-forest-600 to-forest-700 text-white font-semibold text-sm shadow-lg hover:shadow-xl hover:from-forest-500 hover:to-forest-600 transition-all duration-200 transform hover:-translate-y-0.5"

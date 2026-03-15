@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { JourneyProvider } from '@/context/JourneyContext';
 import Navbar from '@/components/Navbar';
 import MapView from '@/components/MapView';
+import StoryOverlay from '@/components/StoryOverlay';
 import JourneySidebar from '@/components/JourneySidebar';
 import InquiryForm from '@/components/InquiryForm';
 import { locations, categoryConfig, LocationCategory } from '@/data/locations';
@@ -215,8 +216,9 @@ function MapSection() {
         </p>
       </div>
 
-      <div className="rounded-2xl overflow-hidden shadow-2xl border border-forest-100">
+      <div className="rounded-2xl overflow-hidden shadow-2xl border border-forest-100 relative">
         <MapView />
+        <StoryOverlay />
       </div>
     </section>
   );

@@ -1,12 +1,14 @@
 # 🏔️ Discover Kyrgyzstan — Interactive Travel Guide
 
-A modern, responsive tourism portal for Kyrgyzstan built with **Next.js 16**, **Tailwind CSS**, and **React Leaflet**. Explore 10 breathtaking destinations on an interactive map, build your dream itinerary, and submit a travel inquiry — all in one beautiful experience.
+A modern, responsive tourism portal for Kyrgyzstan built with **Next.js 16**, **Tailwind CSS**, and an **interactive 3D map** (MapLibre GL + terrain). Explore 10 breathtaking destinations, build your dream itinerary, and submit a travel inquiry — all in one experience.
+
+**Run the website:** From the project root run `npm run dev`, then open **[http://localhost:3000](http://localhost:3000)**. To edit the page layout open `src/app/page.tsx`; to change the map open `src/components/MapView.tsx`. You do not need to run `kg-3d-map` separately — the 3D map is built into this app.
 
 ![Hero Screenshot](/public/hero.png)
 
 ## ✨ Features
 
-- **Interactive Map** — Leaflet map centered on Kyrgyzstan with 10 custom SVG markers, each styled by category (Lake 💧, Mountain ⛰️, Historical 🏛️, City 🏙️, Nature 🌿, Forest 🌲)
+- **Interactive 3D Map** — MapLibre GL with terrain, pitch, hillshade, and optional satellite layer; 10 category-styled markers (Lake 💧, Mountain ⛰️, Historical 🏛️, City 🏙️, Nature 🌿, Forest 🌲) with click-to-open detail modal
 - **Location Modals** — Click any marker to view a rich detail card with description, highlights, image gallery, elevation, and best season
 - **Journey Planner** — Add destinations to your bucket list with real-time sidebar updates and persistent `localStorage` state
 - **Multi-Step Inquiry Form** — 3-step lead-gen flow (Contact → Trip Details → Review) that POSTs to `/api/inquiry`
@@ -63,7 +65,8 @@ src/
 │   ├── page.tsx                 # Hero, map, destinations grid, footer
 │   └── api/inquiry/route.ts     # Mock inquiry POST endpoint
 ├── components/
-│   ├── MapView.tsx              # Leaflet map with custom SVG markers
+│   ├── MapView.tsx              # 3D MapLibre map with terrain + markers
+│   ├── MapView.css              # 3D map and marker styles
 │   ├── LocationModal.tsx        # Location detail modal
 │   ├── JourneySidebar.tsx       # Bucket-list sidebar
 │   ├── InquiryForm.tsx          # Multi-step lead-gen form
@@ -81,9 +84,9 @@ src/
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
-| Map | React Leaflet + Leaflet |
+| Map | MapLibre GL JS + PMTiles (optional) + free terrain tiles |
 | Icons | Lucide React |
-| Tiles | CARTO Voyager |
+| Tiles | OSM + MapLibre terrain; optional Sentinel-2 satellite |
 | Font | Outfit (Google Fonts) |
 
 ## 📬 API
