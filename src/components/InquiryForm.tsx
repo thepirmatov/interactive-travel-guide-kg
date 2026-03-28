@@ -1,9 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, Mail, Phone, Calendar, Users, MessageSquare, ArrowRight, ArrowLeft, Check, Send, MapPin, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Users, MessageSquare, ArrowRight, ArrowLeft, Check, Send, MapPin, Loader2, Banknote } from 'lucide-react';
 import { useJourney } from '@/context/JourneyContext';
 import { categoryConfig } from '@/data/locations';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(s: string) {
+  return s.trim() === '' || EMAIL_REGEX.test(s.trim());
+}
+
+const BUDGET_OPTIONS = [
+  { value: 'budget', label: 'Budget', desc: 'Hostels, shared transport' },
+  { value: 'mid-range', label: 'Mid-range', desc: 'Guesthouses, private transport' },
+  { value: 'luxury', label: 'Luxury', desc: 'Boutique hotels, guided tours' },
+] as const;
 
 export default function InquiryForm() {
     const { state, setInquiry } = useJourney();
@@ -11,27 +22,31 @@ export default function InquiryForm() {
     const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [emailTouched, setEmailTouched] = useState(false);
     const [form, setForm] = useState({
         name: '',
         email: '',
         phone: '',
         startDate: '',
         endDate: '',
-        groupSize: '2',
+        groupSize: 2,
+        budget: 'mid-range' as 'budget' | 'mid-range' | 'luxury',
         notes: '',
     });
 
     if (!inquiryOpen) return null;
 
-    const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
+    const update = (field: string, value: string | number) => setForm((prev) => ({ ...prev, [field]: value }));
 
-    const canProceed1 = form.name.trim() && form.email.trim();
+    const emailInvalid = emailTouched && form.email.trim() !== '' && !isValidEmail(form.email);
+    const canProceed1 = form.name.trim() && form.email.trim() && isValidEmail(form.email);
     const canProceed2 = form.startDate && form.endDate;
 
     const handleSubmit = async () => {
         setSubmitting(true);
         const payload = {
             ...form,
+            groupSize: String(form.groupSize),
             locations: selectedLocations.map((l) => ({ id: l.id, name: l.name, category: l.category })),
             submittedAt: new Date().toISOString(),
         };
@@ -121,9 +136,15 @@ export default function InquiryForm() {
                                         type="email"
                                         value={form.email}
                                         onChange={(e) => update('email', e.target.value)}
+                                        onBlur={() => setEmailTouched(true)}
                                         placeholder="john@example.com"
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-forest-200 bg-forest-50/50 text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all"
+                                        className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-forest-50/50 text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all ${emailInvalid ? 'border-red-400 focus:ring-red-400' : 'border-forest-200'}`}
+                                        aria-invalid={emailInvalid}
+                                        aria-describedby={emailInvalid ? 'email-error' : undefined}
                                     />
+                                    {emailInvalid && (
+                                        <p id="email-error" className="mt-1 text-xs text-red-600">Please enter a valid email address.</p>
+                                    )}
                                 </div>
                             </div>
                             <div>
@@ -170,19 +191,40 @@ export default function InquiryForm() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-forest-800 mb-1.5">Group Size</label>
-                                <div className="relative">
-                                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                                    <select
+                                <div className="flex items-center gap-3">
+                                    <Users className="w-4 h-4 text-muted shrink-0" />
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={12}
                                         value={form.groupSize}
-                                        onChange={(e) => update('groupSize', e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-forest-200 bg-forest-50/50 text-foreground focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all appearance-none"
-                                    >
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, '9+'].map((n) => (
-                                            <option key={n} value={n}>
-                                                {n} {n === 1 ? 'person' : 'people'}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(e) => update('groupSize', parseInt(e.target.value, 10))}
+                                        className="flex-1 h-2 rounded-full appearance-none bg-forest-200 accent-forest-600"
+                                    />
+                                    <span className="text-sm font-medium text-forest-800 w-16 text-right">
+                                        {form.groupSize} {form.groupSize === 1 ? 'person' : 'people'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-forest-800 mb-1.5">Budget</label>
+                                <div className="flex gap-2">
+                                    {BUDGET_OPTIONS.map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => update('budget', opt.value)}
+                                            className={`flex-1 flex flex-col items-center p-3 rounded-xl border text-sm transition-all ${
+                                                form.budget === opt.value
+                                                    ? 'border-forest-600 bg-forest-50 text-forest-800 ring-2 ring-forest-500'
+                                                    : 'border-forest-200 bg-forest-50/50 text-muted hover:border-forest-300'
+                                            }`}
+                                        >
+                                            <Banknote className="w-4 h-4 mb-0.5" />
+                                            <span className="font-medium">{opt.label}</span>
+                                            <span className="text-xs opacity-80">{opt.desc}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                             <div>
@@ -215,7 +257,8 @@ export default function InquiryForm() {
                                 <h4 className="text-sm font-semibold text-sky-800 mb-2">Trip Details</h4>
                                 <div className="space-y-1 text-sm">
                                     <p><span className="text-muted">Dates:</span> <span className="font-medium">{form.startDate} → {form.endDate}</span></p>
-                                    <p><span className="text-muted">Group:</span> <span className="font-medium">{form.groupSize} {Number(form.groupSize) === 1 ? 'person' : 'people'}</span></p>
+                                    <p><span className="text-muted">Group:</span> <span className="font-medium">{form.groupSize} {form.groupSize === 1 ? 'person' : 'people'}</span></p>
+                                    <p><span className="text-muted">Budget:</span> <span className="font-medium capitalize">{form.budget}</span></p>
                                     {form.notes && <p><span className="text-muted">Notes:</span> <span className="font-medium">{form.notes}</span></p>}
                                 </div>
                             </div>

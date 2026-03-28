@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, X, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, BookOpen, MapPin, Check } from 'lucide-react';
 import { useTourStore } from '@/store/useTourStore';
+import { useJourney } from '@/context/JourneyContext';
+import { locations } from '@/data/locations';
 import type { LocationSlideType } from '@/types/story';
 import './StoryOverlay.css';
 
@@ -12,6 +14,8 @@ const SLIDE_TYPE_LABEL: Record<LocationSlideType, string> = {
   housing: 'Stay',
   info: 'Info',
 };
+
+const SWIPE_THRESHOLD_PX = 50;
 
 export default function StoryOverlay() {
   const {
@@ -25,6 +29,12 @@ export default function StoryOverlay() {
     flyToGlobalView,
     mode,
   } = useTourStore();
+  const { addLocation, isSelected } = useJourney();
+
+  const location = storyDestination ? locations.find((l) => l.id === storyDestination.id) : null;
+  const inJourney = storyDestination ? isSelected(storyDestination.id) : false;
+
+  const touchStartX = useRef<number | null>(null);
 
   const isOpen = mode === 'story' && storyDestination && storyDestination.slides.length > 0;
   const slide = isOpen ? storyDestination!.slides[storySlideIndex] : null;
@@ -38,17 +48,52 @@ export default function StoryOverlay() {
     flyToCamera(slide.camera, 2000);
   }, [storySlideIndex, slide?.id, isOpen]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     flyToGlobalView();
     setTimeout(() => closeStory(), 600);
-  };
+  }, [flyToGlobalView, closeStory]);
+
+  // Keyboard: ← / → navigate slides, Escape closes
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+        return;
+      }
+      if (e.key === 'ArrowLeft' && canPrev) prevSlide();
+      if (e.key === 'ArrowRight' && canNext) nextSlide();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, canPrev, canNext, handleClose, prevSlide, nextSlide]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (touchStartX.current === null) return;
+      const endX = e.changedTouches[0].clientX;
+      const delta = endX - touchStartX.current;
+      touchStartX.current = null;
+      if (delta > SWIPE_THRESHOLD_PX && canPrev) prevSlide();
+      if (delta < -SWIPE_THRESHOLD_PX && canNext) nextSlide();
+    },
+    [canPrev, canNext, prevSlide, nextSlide]
+  );
 
   if (!isOpen || !slide) return null;
 
   return (
     <div className="story-overlay">
       <div className="story-overlay-backdrop" aria-hidden />
-      <div className="story-overlay-card">
+      <div
+        className="story-overlay-card"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className="story-overlay-card-header">
           <span className="story-overlay-badge">{SLIDE_TYPE_LABEL[slide.type]}</span>
           <span className="story-overlay-counter">
@@ -81,15 +126,35 @@ export default function StoryOverlay() {
             dangerouslySetInnerHTML={{ __html: slide.description }}
           />
 
-          {slide.type === 'housing' && (
-            <a
-              href="#inquiry"
-              className="story-overlay-book"
-            >
-              <BookOpen className="w-4 h-4" />
-              Book / More Info
-            </a>
-          )}
+          <div className="story-overlay-actions">
+            {location && (
+              <button
+                type="button"
+                onClick={() => addLocation(location)}
+                disabled={inJourney}
+                className={`story-overlay-add-journey ${inJourney ? 'added' : ''}`}
+                aria-label={inJourney ? 'Already in your journey' : 'Add to journey'}
+              >
+                {inJourney ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    In your journey
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-4 h-4" />
+                    Add to journey
+                  </>
+                )}
+              </button>
+            )}
+            {slide.type === 'housing' && (
+              <a href="#inquiry" className="story-overlay-book">
+                <BookOpen className="w-4 h-4" />
+                Book / More Info
+              </a>
+            )}
+          </div>
 
           <div className="story-overlay-nav">
             <button

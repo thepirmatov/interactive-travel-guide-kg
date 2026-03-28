@@ -123,6 +123,41 @@
   margin: 0 0 0.5em 0;
 }
 
+.story-overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.story-overlay-add-journey {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2E7D32, #1b5e20);
+  color: #fff;
+  transition: opacity 0.2s, transform 0.15s, background 0.2s;
+}
+
+.story-overlay-add-journey:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.story-overlay-add-journey.added,
+.story-overlay-add-journey:disabled {
+  background: #94a3b8;
+  cursor: default;
+  opacity: 0.9;
+}
+
 .story-overlay-book {
   display: inline-flex;
   align-items: center;
@@ -134,7 +169,6 @@
   font-weight: 600;
   border-radius: 10px;
   text-decoration: none;
-  margin-bottom: 16px;
   transition: opacity 0.2s, transform 0.15s;
 }
 

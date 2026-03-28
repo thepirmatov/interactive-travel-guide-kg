@@ -1,9 +1,14 @@
-/* 3D Map container – matches section layout (600px like previous Leaflet map) */
+/* 3D Map container – default height for section layout */
 .map-view-3d-wrap {
   position: relative;
   width: 100%;
   height: 600px;
   min-height: 400px;
+}
+
+/* Admin context: fill the full panel height */
+.admin-map-area .map-view-3d-wrap {
+  height: 100%;
 }
 
 .map-view-3d-container {
@@ -62,7 +67,9 @@
 }
 
 @keyframes map-view-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 3D markers – category-colored pins with float animation */
@@ -103,8 +110,15 @@
 }
 
 @keyframes map-view-float {
-  0%, 100% { transform: translateY(0) rotate(-45deg); }
-  50% { transform: translateY(-8px) rotate(-45deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(-45deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(-45deg);
+  }
 }
 
 .map-view-3d-marker-float .map-view-3d-marker-label {
@@ -112,6 +126,13 @@
 }
 
 @keyframes map-view-float-label {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
 }

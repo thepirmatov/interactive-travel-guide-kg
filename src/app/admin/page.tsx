@@ -5,36 +5,93 @@ import Link from 'next/link';
 import { useTourStore } from '@/store/useTourStore';
 import MapView from '@/components/MapView';
 import AdminPanel from '@/components/AdminPanel';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Save, MapPin, ChevronDown } from 'lucide-react';
+import './admin.css';
 
 export default function AdminPage() {
-  const setMode = useTourStore((s) => s.setMode);
+  const {
+    setMode,
+    adminDestinationId,
+    destinations,
+    adminSlides,
+    updateDestinationSlides,
+  } = useTourStore();
 
   useEffect(() => {
     setMode('admin');
     return () => setMode('map');
   }, [setMode]);
 
+  const dest = adminDestinationId
+    ? destinations.find((d) => d.id === adminDestinationId)
+    : null;
+
+  const isDirty = dest
+    ? JSON.stringify(dest.slides) !== JSON.stringify(adminSlides)
+    : false;
+
+  const handleSave = () => {
+    if (!adminDestinationId) return;
+    updateDestinationSlides(adminDestinationId, adminSlides);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur border-b border-forest-100">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-forest-700 hover:text-forest-900 font-medium"
-        >
-          <ArrowLeft className="w-4 h-4" />
+    <div className="adm-layout">
+      {/* ── Top bar ── */}
+      <header className="adm-topbar">
+        <Link href="/" className="adm-back">
+          <ArrowLeft size={14} />
           Back to site
         </Link>
-        <span className="text-sm font-semibold text-forest-600 uppercase tracking-wider">
-          Creator Mode
-        </span>
+
+        <div className="adm-divider" />
+        <span className="adm-title">Creator mode</span>
+        {isDirty && <span className="adm-unsaved">Unsaved</span>}
+
+        <div className="adm-spacer" />
+
+        <DestinationSelector />
+
+        <button
+          className="adm-save"
+          onClick={handleSave}
+          disabled={!adminDestinationId}
+        >
+          <Save size={13} />
+          Save destination
+        </button>
       </header>
-      <main className="flex-1 relative">
-        <div className="absolute inset-0">
+
+      {/* ── Body: map left, panel right ── */}
+      <div className="adm-body">
+        <div className="adm-map">
           <MapView />
         </div>
         <AdminPanel />
-      </main>
+      </div>
+    </div>
+  );
+}
+
+function DestinationSelector() {
+  const { destinations, adminDestinationId, setAdminDestination } = useTourStore();
+
+  return (
+    <div className="adm-dest-wrap">
+      <MapPin size={13} className="adm-dest-icon" />
+      <select
+        className="adm-dest-select"
+        value={adminDestinationId ?? ''}
+        onChange={(e) => setAdminDestination(e.target.value || null)}
+      >
+        <option value="">Select destination…</option>
+        {destinations.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name}
+          </option>
+        ))}
+      </select>
+      <ChevronDown size={13} className="adm-dest-chevron" />
     </div>
   );
 }

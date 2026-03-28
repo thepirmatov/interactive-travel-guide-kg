@@ -79,7 +79,7 @@ export function getBaseStyle(usePmtiles: boolean): StyleSpecification {
         'hillshade-shadow-color': '#1a1a2e',
         'hillshade-highlight-color': '#f0f4e8',
         'hillshade-illumination-direction': 180,
-        'hillshade-exaggeration': 0.4,
+        'hillshade-exaggeration': 0.6,
       },
     },
   ];

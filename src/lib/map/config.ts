@@ -6,13 +6,19 @@
 /** Kyrgyzstan center [lng, lat] */
 export const DEFAULT_CENTER: [number, number] = [75.5, 41.5];
 export const DEFAULT_ZOOM = 6;
+
+/** Hard bounds — map cannot pan outside Kyrgyzstan. [[sw lng, sw lat], [ne lng, ne lat]] */
+export const KG_BOUNDS: [[number, number], [number, number]] = [
+  [69.0, 39.0],
+  [81.0, 43.8],
+];
 /** Default pitch (degrees) — immersive 3D */
 export const DEFAULT_PITCH = 65;
 export const MAX_PITCH = 85;
 /** Slight rotation so north isn't straight up */
 export const DEFAULT_BEARING = -15;
-/** Terrain exaggeration — imposing mountains (2.5 for "pop") */
-export const TERRAIN_EXAGGERATION = 2.5;
+/** Terrain exaggeration — higher = more dramatic 3D mountains (demo tiles are subtle at country zoom) */
+export const TERRAIN_EXAGGERATION = 4;
 
 export const PMTILES_URL =
   (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PMTILES_URL) || '/kyrgyzstan.pmtiles';

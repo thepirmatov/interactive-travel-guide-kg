@@ -1,13 +1,14 @@
 'use client';
 
-import React from 'react';
-import { X, Trash2, MapPin, ArrowRight, Sparkles } from 'lucide-react';
+import { X, Trash2, MapPin, ArrowRight, Sparkles, Compass } from 'lucide-react';
 import { useJourney } from '@/context/JourneyContext';
+import { useTourStore } from '@/store/useTourStore';
 import { categoryConfig } from '@/data/locations';
 
 export default function JourneySidebar() {
     const { state, removeLocation, clearJourney, setSidebar, setInquiry } = useJourney();
     const { selectedLocations, sidebarOpen } = state;
+    const { openStory, destinations } = useTourStore();
 
     if (!sidebarOpen) return null;
 
@@ -80,18 +81,35 @@ export default function JourneySidebar() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => removeLocation(location.id)}
-                                                className="w-7 h-7 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 flex items-center justify-center transition-all"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                                            </button>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        const dest = destinations.find((d) => d.id === location.id);
+                                                        if (dest) {
+                                                            setSidebar(false);
+                                                            openStory(dest);
+                                                        }
+                                                    }}
+                                                    className="w-7 h-7 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-sky-50 flex items-center justify-center transition-all"
+                                                    title="View 3D Tour"
+                                                >
+                                                    <Compass className="w-3.5 h-3.5 text-sky-600" />
+                                                </button>
+                                                <button
+                                                    onClick={() => removeLocation(location.id)}
+                                                    className="w-7 h-7 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 flex items-center justify-center transition-all"
+                                                    title="Remove"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         )}
                     </div>
+
 
                     {/* Footer */}
                     {selectedLocations.length > 0 && (

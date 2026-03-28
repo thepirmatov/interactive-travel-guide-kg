@@ -144,6 +144,32 @@ export const locations: Location[] = [
     elevation: '1,650m',
     bestSeason: 'April – October',
   },
+  {
+    id: 'osh',
+    name: 'Osh & Suleiman-Too',
+    category: 'historical',
+    coordinates: [40.53, 72.79],
+    description:
+      'Osh is often called the cultural capital of Kyrgyzstan — a melting pot of Kyrgyz, Tajik, and Uzbek cultures. At its heart rises Suleiman-Too (Solomon\'s Mountain), a UNESCO World Heritage Site with sacred caves, mosques, and a museum. The mountain has been a place of pilgrimage for millennia and offers panoramic views over the Fergana Valley.',
+    shortDescription: 'Cultural capital and UNESCO Suleiman-Too — sacred mountain and bazaars',
+    highlights: ['Suleiman-Too UNESCO site', 'Sacred caves & museum', 'Jayma Bazaar', 'Multi-ethnic culture'],
+    images: ['/locations/osh-1.jpg', '/locations/osh-2.jpg', '/locations/osh-3.jpg'],
+    elevation: '963m',
+    bestSeason: 'April – October',
+  },
+  {
+    id: 'altyn-arashan',
+    name: 'Altyn-Arashan Valley',
+    category: 'nature',
+    coordinates: [42.35, 78.55],
+    description:
+      'One of Kyrgyzstan\'s most famous hot-spring valleys, Altyn Arashan lies east of Karakol in the Terskei Alatoo. The thermal waters reach around 45°C and are traditionally used for conditions related to the nervous, endocrine, cardiovascular, and musculoskeletal systems. Stay in simple guesthouses or yurts and combine soaking with day hikes to alpine meadows and glaciers.',
+    shortDescription: 'Famous hot springs (~45°C) near Karakol — hiking and mountain views',
+    highlights: ['Hot springs 45°C', 'Yurt stays', 'Day hikes', 'Near Karakol'],
+    images: ['/locations/altyn-arashan-1.jpg', '/locations/altyn-arashan-2.jpg', '/locations/altyn-arashan-3.jpg'],
+    elevation: '2,400m',
+    bestSeason: 'June – September',
+  },
 ];
 
 export const categoryConfig: Record<LocationCategory, { label: string; color: string; icon: string }> = {

@@ -41,14 +41,18 @@ interface TourState {
 
   flyToCamera: (camera: CameraView, duration?: number) => void;
   flyToGlobalView: () => void;
+  loadDestinations: () => Promise<void>;
 }
 
 const FLY_DURATION_MS = 2000;
+
 const GLOBAL_VIEW: CameraView = { center: [75.5, 41.5], zoom: 6, pitch: 65, bearing: -15 };
 
 export const useTourStore = create<TourState>((set, get) => ({
   map: null,
   setMap: (map) => set({ map }),
+
+
 
   mode: 'map',
   setMode: (mode) => set({ mode }),
@@ -156,4 +160,24 @@ export const useTourStore = create<TourState>((set, get) => ({
   flyToGlobalView: () => {
     get().flyToCamera(GLOBAL_VIEW, 2500);
   },
+
+  loadDestinations: async () => {
+    try {
+      const res = await fetch('/api/destinations');
+      const ct = res.headers.get('content-type') ?? '';
+      if (!ct.includes('application/json')) {
+        console.warn('GET /api/destinations: expected JSON, got', ct);
+        return;
+      }
+      const data = await res.json();
+      if (data.success && data.destinations && data.destinations.length > 0) {
+        set({ destinations: data.destinations });
+      }
+    } catch (err) {
+      console.warn('Failed to load destinations from DB:', err);
+    }
+  },
 }));
+
+
+

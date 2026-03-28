@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+
 import Image from 'next/image';
 import { JourneyProvider } from '@/context/JourneyContext';
 import Navbar from '@/components/Navbar';
@@ -8,8 +9,11 @@ import MapView from '@/components/MapView';
 import StoryOverlay from '@/components/StoryOverlay';
 import JourneySidebar from '@/components/JourneySidebar';
 import InquiryForm from '@/components/InquiryForm';
-import { locations, categoryConfig, LocationCategory } from '@/data/locations';
+import InquirySection from '@/components/InquirySection';
+import { categoryConfig, LocationCategory } from '@/data/locations';
 import { useJourney } from '@/context/JourneyContext';
+
+import { useTourStore } from '@/store/useTourStore';
 import {
   MapPin,
   Mountain,
@@ -98,11 +102,41 @@ function HeroSection() {
 
 function DestinationsGrid() {
   const { addLocation, isSelected } = useJourney();
+  const { openStory, destinations } = useTourStore(); // zustand
+  const [locations, setLocations] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    fetch('/api/locations')
+      .then(async (res) => {
+        const ct = res.headers.get('content-type') ?? '';
+        if (!ct.includes('application/json')) {
+          console.warn('GET /api/locations: expected JSON, got', ct);
+          return null;
+        }
+        return res.json() as Promise<{ success?: boolean; locations?: unknown[] }>;
+      })
+      .then((data) => {
+        if (data?.success && data.locations) setLocations(data.locations);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const categories = Object.entries(categoryConfig) as [LocationCategory, typeof categoryConfig[LocationCategory]][];
 
+  if (loading) {
+    return (
+      <div className="py-20 text-center">
+        <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-muted text-sm">Loading destinations...</p>
+      </div>
+    );
+  }
+
   return (
     <section id="destinations" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+
       <div className="text-center mb-12">
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-forest-600 uppercase tracking-wider mb-3">
           <MapPin className="w-4 h-4" />
@@ -136,8 +170,11 @@ function DestinationsGrid() {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
         {locations.map((location) => {
-          const cat = categoryConfig[location.category];
+          const cat = categoryConfig[location.category as LocationCategory];
+          if (!cat) return null; // safety
+          
           const selected = isSelected(location.id);
+
           const gradient =
             location.category === 'lake' ? 'from-sky-400 to-sky-600' :
               location.category === 'mountain' ? 'from-gray-500 to-gray-700' :
@@ -176,21 +213,36 @@ function DestinationsGrid() {
                 <h3 className="text-lg font-bold text-forest-900 mb-1.5">{location.name}</h3>
                 <p className="text-sm text-muted leading-relaxed mb-4 line-clamp-2">{location.shortDescription}</p>
                 <div className="flex flex-wrap gap-1.5 mb-4">
-                  {location.highlights.slice(0, 3).map((h) => (
+                  {location.highlights.slice(0, 3).map((h: string) => (
                     <span key={h} className="text-[11px] px-2 py-0.5 rounded-full bg-forest-50 text-forest-600 font-medium">
                       {h}
                     </span>
                   ))}
                 </div>
-                <button
-                  onClick={() => !selected && addLocation(location)}
-                  className={`w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${selected
-                      ? 'bg-forest-50 text-forest-600 border border-forest-200'
-                      : 'bg-gradient-to-r from-forest-600 to-forest-700 text-white shadow-md hover:shadow-lg hover:from-forest-500 hover:to-forest-600'
-                    }`}
-                >
-                  {selected ? '✓ In My Journey' : '+ Add to Journey'}
-                </button>
+
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => !selected && addLocation(location)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${selected
+                        ? 'bg-forest-50 text-forest-600 border border-forest-200'
+                        : 'bg-gradient-to-r from-forest-600 to-forest-700 text-white shadow-md hover:shadow-lg hover:from-forest-500 hover:to-forest-600'
+                      }`}
+                  >
+                    {selected ? '✓ Added' : '+ Add'}
+                  </button>
+                  <button
+                    onClick={() => {
+                        const dest = destinations.find((d) => d.id === location.id);
+                        if (dest) openStory(dest);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 font-semibold text-sm transition-all"
+                    title="Explore in 3D"
+                  >
+                    <Compass className="w-4 h-4" />
+                    Visit
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -199,6 +251,7 @@ function DestinationsGrid() {
     </section>
   );
 }
+
 
 function MapSection() {
   return (
@@ -251,11 +304,14 @@ function Footer() {
 export default function Home() {
   return (
     <JourneyProvider>
+
+
       <Navbar />
       <main>
         <HeroSection />
         <MapSection />
         <DestinationsGrid />
+        <InquirySection />
       </main>
       <Footer />
       <JourneySidebar />

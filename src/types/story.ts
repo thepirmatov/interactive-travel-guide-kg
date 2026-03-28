@@ -24,7 +24,9 @@ export interface LocationSlide {
   /** Rich text: HTML or Markdown, depending on your renderer */
   description: string;
   image_url: string;
+  images?: string[];
   type: LocationSlideType;
+
   /** The exact 3D angle for this slide (from Camera Capture in admin). */
   camera: CameraView;
   /** Optional elevation at this view (meters). */

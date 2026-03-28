@@ -1,6 +1,7 @@
 import type { Destination, LocationSlide } from '@/types/story';
 import { DEFAULT_CAMERA_VIEW } from '@/types/story';
 import { locations } from '@/data/locations';
+import customDestinations from './custom_destinations.json';
 
 /** Build one slide with default camera (admin can capture later). */
 function slide(
@@ -25,7 +26,13 @@ function slide(
 
 /** Seed destinations from locations, each with 1–2 slides for story mode. */
 export function getSeedDestinations(): Destination[] {
+  if (Array.isArray(customDestinations) && customDestinations.length > 0) {
+    return customDestinations as Destination[];
+  }
+
   return locations.map((loc) => {
+
+
     const lng = loc.coordinates[1];
     const lat = loc.coordinates[0];
     const mainView: [number, number] = [lng, lat];
@@ -59,3 +66,4 @@ export function getSeedDestinations(): Destination[] {
     };
   });
 }
+
